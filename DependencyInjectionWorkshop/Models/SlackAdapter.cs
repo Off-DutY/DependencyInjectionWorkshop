@@ -7,7 +7,7 @@ namespace DependencyInjectionWorkshop.Models
         void PushMessage(string accountId);
     }
 
-    public class Notifier : INotifier
+    public class SlackAdapter : INotifier
     {
         public void PushMessage(string accountId)
         {

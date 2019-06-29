@@ -4,12 +4,12 @@ namespace DependencyInjectionWorkshop.Models
 {
     public interface IHash
     {
-        StringBuilder Hash(string plainText);
+        string Hash(string plainText);
     }
 
     public class Sha256Adapter : IHash
     {
-        public StringBuilder Hash(string plainText)
+        public string Hash(string plainText)
         {
             var crypt = new System.Security.Cryptography.SHA256Managed();
             var hash = new StringBuilder();
@@ -18,7 +18,7 @@ namespace DependencyInjectionWorkshop.Models
             {
                 hash.Append(theByte.ToString("x2"));
             }
-            return hash;
+            return hash.ToString();
         }
     }
 }

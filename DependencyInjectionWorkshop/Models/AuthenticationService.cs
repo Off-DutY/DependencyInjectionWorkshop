@@ -8,27 +8,27 @@ namespace DependencyInjectionWorkshop.Models
         private readonly INotifier _notifier;
         private readonly IFailCounter _failCounter;
         private readonly IOtpService _otpService;
-        private readonly IHash _sha256Adapter;
-        private readonly IProfileDao _profileDao;
+        private readonly IHash _hash;
+        private readonly IProfile _profile;
 
-        public AuthenticationService(INotifier notifier, ILogger logger, IFailCounter failCounter, IOtpService otpService, IHash sha256Adapter, IProfileDao profileDao)
+        public AuthenticationService(INotifier notifier, ILogger logger, IFailCounter failCounter, IOtpService otpService, IHash hash, IProfile profile)
         {
             _notifier = notifier;
             _logger = logger;
             _failCounter = failCounter;
             _otpService = otpService;
-            _sha256Adapter = sha256Adapter;
-            _profileDao = profileDao;
+            _hash = hash;
+            _profile = profile;
         }
 
         public AuthenticationService()
         {
-            _notifier = new Notifier();
+            _notifier = new SlackAdapter();
             _logger = new NLogAdapter();
             _failCounter = new FailCounter();
             _otpService = new OtpService();
-            _sha256Adapter = new Sha256Adapter();
-            _profileDao = new ProfileDao();
+            _hash = new Sha256Adapter();
+            _profile = new ProfileDao();
         }
 
 
@@ -41,22 +41,23 @@ namespace DependencyInjectionWorkshop.Models
             }
 
             // 取得密碼hash
-            var hashPassword = _sha256Adapter.Hash(password);
+            var hashPassword = _hash.Hash(password);
 
             // 取得帳號當下的Otp
             var currentOtp = _otpService.Get(accountId);
 
             // 取得帳號的password
-            var dbHashPassword = _profileDao.GetPassword(accountId);
+            var dbHashPassword = _profile.GetPassword(accountId);
 
-            // 比對正確性
-            if (inputOtp == currentOtp && hashPassword.ToString() == dbHashPassword)
+            // 比對
+            if (inputOtp == currentOtp && hashPassword == dbHashPassword)
             {
                 // 成功之後重計
                 _failCounter.Reset(accountId);
                 return true;
             }
 
+            // 失敗
             // Slack通知User
             _notifier.PushMessage(accountId);
 
