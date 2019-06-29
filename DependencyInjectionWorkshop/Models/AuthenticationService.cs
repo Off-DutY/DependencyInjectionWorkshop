@@ -13,6 +13,22 @@ namespace DependencyInjectionWorkshop.Models
     {
         public bool Verify(string account, string password, string inputOtp)
         {
+            using (var httpClient = new HttpClient() {BaseAddress = new Uri("http://joey.com/")})
+            {
+                var isAccountLocked = httpClient.PostAsJsonAsync("api/FailCounter/Get", account).Result;
+                if (isAccountLocked.IsSuccessStatusCode == false)
+                {
+                    throw new Exception($"web api error, accountId:{account}");
+                }
+
+                isAccountLocked.EnsureSuccessStatusCode();
+                if (isAccountLocked.Content.ReadAsAsync<bool>().Result)
+                {
+//                    throw new FailedTooManyTimesException();
+                    throw new Exception("FailedTooManyTimesException");
+                }
+            }
+
             var hashPassword = "";
             using (var connection = new SqlConnection("my connection string"))
             {
@@ -47,7 +63,7 @@ namespace DependencyInjectionWorkshop.Models
             {
                 using (var httpClient = new HttpClient() {BaseAddress = new Uri("http://joey.com/")})
                 {
-                    var response = httpClient.PostAsJsonAsync("api/ResetCount", account).Result;
+                    var response = httpClient.PostAsJsonAsync("api/FailCounter/Reset", account).Result;
                     if (response.IsSuccessStatusCode == false)
                     {
                         throw new Exception($"web api error, accountId:{account}");
@@ -63,7 +79,7 @@ namespace DependencyInjectionWorkshop.Models
             // 計算失敗次數
             using (var httpClient = new HttpClient() {BaseAddress = new Uri("http://joey.com/")})
             {
-                var response = httpClient.PostAsJsonAsync("api/addErrorCount", account).Result;
+                var response = httpClient.PostAsJsonAsync("api/FailCounter/Add", account).Result;
                 if (response.IsSuccessStatusCode == false)
                 {
                     throw new Exception($"web api error, accountId:{account}");
