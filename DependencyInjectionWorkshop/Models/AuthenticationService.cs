@@ -41,7 +41,7 @@ namespace DependencyInjectionWorkshop.Models
             }
 
             // 取得密碼hash
-            var hashPassword = _hash.Hash(password);
+            var hashPassword = _hash.Compute(password);
 
             // 取得帳號當下的Otp
             var currentOtp = _otpService.Get(accountId);
