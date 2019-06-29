@@ -30,24 +30,46 @@ namespace DependencyInjectionWorkshop.Models
 
             var currentOtp = "";
 
-            var httpClient = new HttpClient() {BaseAddress = new Uri("http://joey.com/")};
-            var response = httpClient.PostAsJsonAsync("api/otps", account).Result;
-            if (response.IsSuccessStatusCode)
+            using (var httpClient = new HttpClient() {BaseAddress = new Uri("http://joey.com/")})
             {
-                currentOtp = response.Content.ReadAsAsync<string>().Result;
-            }
-            else
-            {
-                throw new Exception($"web api error, accountId:{account}");
+                var response = httpClient.PostAsJsonAsync("api/otps", account).Result;
+                if (response.IsSuccessStatusCode)
+                {
+                    currentOtp = response.Content.ReadAsAsync<string>().Result;
+                }
+                else
+                {
+                    throw new Exception($"web api error, accountId:{account}");
+                }
             }
 
             if (inputOtp == currentOtp && hash.ToString() == hashPassword)
             {
+                using (var httpClient = new HttpClient() {BaseAddress = new Uri("http://joey.com/")})
+                {
+                    var response = httpClient.PostAsJsonAsync("api/ResetCount", account).Result;
+                    if (response.IsSuccessStatusCode == false)
+                    {
+                        throw new Exception($"web api error, accountId:{account}");
+                    }
+                }
                 return true;
             }
-            
+
+            // 通知
             var slackClient = new SlackClient("my Api token");
             slackClient.PostMessage(r => { }, "mychannel", "message");
+
+            // 計算失敗次數
+            using (var httpClient = new HttpClient() {BaseAddress = new Uri("http://joey.com/")})
+            {
+                var response = httpClient.PostAsJsonAsync("api/addErrorCount", account).Result;
+                if (response.IsSuccessStatusCode == false)
+                {
+                    throw new Exception($"web api error, accountId:{account}");
+                }
+            }
+
             return false;
         }
     }
