@@ -9,18 +9,12 @@ namespace DependencyInjectionWorkshop.Models
 
     public class AuthenticationService : IAuthentication
     {
-        private readonly ILogger _logger;
-        private readonly INotifier _notifier;
-        private readonly IFailCounter _failCounter;
         private readonly IOtpService _otpService;
         private readonly IHash _hash;
         private readonly IProfile _profile;
 
-        public AuthenticationService(INotifier notifier, ILogger logger, IFailCounter failCounter, IOtpService otpService, IHash hash, IProfile profile)
+        public AuthenticationService(IOtpService otpService, IHash hash, IProfile profile)
         {
-            _notifier = notifier;
-            _logger = logger;
-            _failCounter = failCounter;
             _otpService = otpService;
             _hash = hash;
             _profile = profile;
@@ -28,9 +22,6 @@ namespace DependencyInjectionWorkshop.Models
 
         public AuthenticationService()
         {
-            _notifier = new SlackAdapter();
-            _logger = new NLogAdapter();
-            _failCounter = new FailCounter();
             _otpService = new OtpService();
             _hash = new Sha256Adapter();
             _profile = new ProfileDao();
