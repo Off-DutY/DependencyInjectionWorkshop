@@ -15,20 +15,13 @@ namespace DependencyInjectionWorkshop.Models
         {
             var apiUrl = "http://joey.com/";
             var httpClient = new HttpClient() {BaseAddress = new Uri(apiUrl)};
-            var isAccountLocked = httpClient.PostAsJsonAsync("api/FailCounter/Get", accountId).Result;
-            isAccountLocked.EnsureSuccessStatusCode();
-            // 帳號被lock了
-            if (isAccountLocked.Content.ReadAsAsync<bool>().Result)
+
+            var isAccountLockedResponse = httpClient.PostAsJsonAsync("api/FailCounter/Get", accountId).Result;
+            isAccountLockedResponse.EnsureSuccessStatusCode();
+            // 檢查帳號是否被lock了
+            if (isAccountLockedResponse.Content.ReadAsAsync<bool>().Result)
             {
                 throw new FailedTooManyTimesException();
-            }
-
-            // 取得帳號的password
-            var hashPassword = "";
-            using (var connection = new SqlConnection("my connection string"))
-            {
-                hashPassword = connection.Query<string>("spGetUserPassword", new {Id = accountId},
-                    commandType: CommandType.StoredProcedure).SingleOrDefault();
             }
 
             // 取得密碼hash
@@ -50,6 +43,14 @@ namespace DependencyInjectionWorkshop.Models
             else
             {
                 throw new Exception($"web api error, accountId:{accountId}");
+            }
+
+            // 取得帳號的password
+            var hashPassword = "";
+            using (var connection = new SqlConnection("my connection string"))
+            {
+                hashPassword = connection.Query<string>("spGetUserPassword", new {Id = accountId},
+                    commandType: CommandType.StoredProcedure).SingleOrDefault();
             }
 
             if (inputOtp == currentOtp && hash.ToString() == hashPassword)
