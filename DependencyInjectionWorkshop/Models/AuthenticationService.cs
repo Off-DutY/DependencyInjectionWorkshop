@@ -4,17 +4,17 @@ namespace DependencyInjectionWorkshop.Models
 {
     public class AuthenticationService
     {
+        private readonly ILogger _logger;
         private readonly SlackAdapter _slackAdapter;
-        private readonly NLogAdapter _nLogAdapter;
         private readonly FailCounter _failCounter;
         private readonly OtpService _otpService;
         private readonly Sha256Adapter _sha256Adapter;
         private readonly ProfileDao _profileDao;
 
-        public AuthenticationService(SlackAdapter slackAdapter, NLogAdapter nLogAdapter, FailCounter failCounter, OtpService otpService, Sha256Adapter sha256Adapter, ProfileDao profileDao)
+        public AuthenticationService(SlackAdapter slackAdapter, ILogger logger, FailCounter failCounter, OtpService otpService, Sha256Adapter sha256Adapter, ProfileDao profileDao, ProfileDao test)
         {
             _slackAdapter = slackAdapter;
-            _nLogAdapter = nLogAdapter;
+            _logger = logger;
             _failCounter = failCounter;
             _otpService = otpService;
             _sha256Adapter = sha256Adapter;
@@ -24,7 +24,7 @@ namespace DependencyInjectionWorkshop.Models
         public AuthenticationService()
         {
             _slackAdapter = new SlackAdapter();
-            _nLogAdapter = new NLogAdapter();
+            _logger = new NLogAdapter();
             _failCounter = new FailCounter();
             _otpService = new OtpService();
             _sha256Adapter = new Sha256Adapter();
@@ -65,7 +65,7 @@ namespace DependencyInjectionWorkshop.Models
 
             // 取得現在的失敗次數之後紀錄log
             var failCount = _failCounter.Get(accountId);
-            _nLogAdapter.Info($"account={accountId}, errorCount = {failCount}");
+            _logger.Info($"account={accountId}, errorCount = {failCount}");
 
             return false;
         }
