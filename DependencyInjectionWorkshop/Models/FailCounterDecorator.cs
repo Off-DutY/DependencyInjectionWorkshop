@@ -4,13 +4,28 @@ namespace DependencyInjectionWorkshop.Models
     {
         private readonly IFailCounter _failCounter;
         private readonly IAuthentication _authenticationService;
+        private ILogger _logger;
 
-        public FailCounterDecorator(IAuthentication authenticationService, IFailCounter failCounter)
+        public FailCounterDecorator(IAuthentication authenticationService, IFailCounter failCounter, ILogger logger)
         {
             _failCounter = failCounter;
             _authenticationService = authenticationService;
+            _logger = logger;
         }
 
+        public bool Verify(string accountId, string password, string inputOtp)
+        {
+            CheckLock(accountId);
+            var isValid = _authenticationService.Verify(accountId, password, inputOtp);
+            if (isValid)
+                ResetFailCounter(accountId);
+            else
+            {
+                AddFailCounter(accountId);
+                LogFailCounter(accountId);
+            }
+            return isValid;
+        }
 
         private void CheckLock(string accountId)
         {
@@ -20,10 +35,21 @@ namespace DependencyInjectionWorkshop.Models
             }
         }
 
-        public bool Verify(string accountId, string password, string inputOtp)
+        private void ResetFailCounter(string accountId)
         {
-            CheckLock(accountId);
-            return _authenticationService.Verify(accountId, password, inputOtp);
+            _failCounter.Reset(accountId);
+        }
+
+
+        private void AddFailCounter(string accountId)
+        {
+            _failCounter.Add(accountId);
+        }
+
+        private void LogFailCounter(string accountId)
+        {
+            var failCount = _failCounter.Get(accountId);
+            _logger.Info($"account={accountId}, errorCount = {failCount}");
         }
     }
 }

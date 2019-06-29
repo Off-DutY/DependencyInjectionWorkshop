@@ -49,21 +49,7 @@ namespace DependencyInjectionWorkshop.Models
             var dbHashPassword = _profile.GetPassword(accountId);
 
             // 比對
-            if (inputOtp == currentOtp && hashPassword == dbHashPassword)
-            {
-                // 成功之後重計
-                _failCounter.Reset(accountId);
-                return true;
-            }
-
-            // 計算失敗次數
-            _failCounter.Add(accountId);
-
-            // 取得現在的失敗次數之後紀錄log
-            var failCount = _failCounter.Get(accountId);
-            _logger.Info($"account={accountId}, errorCount = {failCount}");
-
-            return false;
+            return inputOtp == currentOtp && hashPassword == dbHashPassword;
         }
     }
 

@@ -34,7 +34,7 @@ namespace DependencyInjectionWorkshopTests
             _hash = Substitute.For<IHash>();
 
             _authentication = new AuthenticationService(_notifier, _logger, _failCounter, _otpService, _hash, _profile);
-            _authentication = new FailCounterDecorator(_authentication, _failCounter);
+            _authentication = new FailCounterDecorator(_authentication, _failCounter, _logger);
             _authentication = new NotifyDecorator(_authentication, _notifier);
         }
 
