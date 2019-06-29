@@ -14,7 +14,7 @@ namespace DependencyInjectionWorkshop.Models
         public bool Verify(string accountId, string password, string inputOtp)
         {
             // 檢查是否Lock
-            if (AccountIsLock(accountId))
+            if (IsAccountLock(accountId))
             {
                 throw new FailedTooManyTimesException();
             }
@@ -48,7 +48,7 @@ namespace DependencyInjectionWorkshop.Models
             return false;
         }
 
-        private static bool AccountIsLock(string accountId)
+        private static bool IsAccountLock(string accountId)
         {
             var isAccountLockedResponse = new HttpClient() {BaseAddress = new Uri("http://joey.com/")}.PostAsJsonAsync("api/FailCounter/IsLock", accountId).Result;
             isAccountLockedResponse.EnsureSuccessStatusCode();
