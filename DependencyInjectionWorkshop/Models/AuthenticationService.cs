@@ -39,12 +39,6 @@ namespace DependencyInjectionWorkshop.Models
 
         public bool Verify(string accountId, string password, string inputOtp)
         {
-            // 檢查是否Lock
-            if (_failCounter.IsLocked(accountId))
-            {
-                throw new FailedTooManyTimesException();
-            }
-
             // 取得密碼hash
             var hashPassword = _hash.Compute(password);
 
