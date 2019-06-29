@@ -13,7 +13,8 @@ namespace DependencyInjectionWorkshop.Models
     {
         public bool Verify(string account, string password, string inputOtp)
         {
-            using (var httpClient = new HttpClient() {BaseAddress = new Uri("http://joey.com/")})
+            var apiUrl = "http://joey.com/";
+            using (var httpClient = new HttpClient() {BaseAddress = new Uri(apiUrl)})
             {
                 var isAccountLocked = httpClient.PostAsJsonAsync("api/FailCounter/Get", account).Result;
                 if (isAccountLocked.IsSuccessStatusCode == false)
@@ -22,6 +23,7 @@ namespace DependencyInjectionWorkshop.Models
                 }
 
                 isAccountLocked.EnsureSuccessStatusCode();
+                // 帳號被lock了
                 if (isAccountLocked.Content.ReadAsAsync<bool>().Result)
                 {
 //                    throw new FailedTooManyTimesException();
@@ -29,6 +31,7 @@ namespace DependencyInjectionWorkshop.Models
                 }
             }
 
+            // 取得帳號的password
             var hashPassword = "";
             using (var connection = new SqlConnection("my connection string"))
             {
@@ -36,6 +39,7 @@ namespace DependencyInjectionWorkshop.Models
                     commandType: CommandType.StoredProcedure).SingleOrDefault();
             }
 
+            // 取得密碼hash
             var crypt = new System.Security.Cryptography.SHA256Managed();
             var hash = new StringBuilder();
             var crypto = crypt.ComputeHash(Encoding.UTF8.GetBytes(password));
@@ -44,9 +48,9 @@ namespace DependencyInjectionWorkshop.Models
                 hash.Append(theByte.ToString("x2"));
             }
 
+            // 取得帳號當下的Otp
             var currentOtp = "";
-
-            using (var httpClient = new HttpClient() {BaseAddress = new Uri("http://joey.com/")})
+            using (var httpClient = new HttpClient() {BaseAddress = new Uri(apiUrl)})
             {
                 var response = httpClient.PostAsJsonAsync("api/otps", account).Result;
                 if (response.IsSuccessStatusCode)
@@ -61,7 +65,8 @@ namespace DependencyInjectionWorkshop.Models
 
             if (inputOtp == currentOtp && hash.ToString() == hashPassword)
             {
-                using (var httpClient = new HttpClient() {BaseAddress = new Uri("http://joey.com/")})
+                // 成功之後重計
+                using (var httpClient = new HttpClient() {BaseAddress = new Uri(apiUrl)})
                 {
                     var response = httpClient.PostAsJsonAsync("api/FailCounter/Reset", account).Result;
                     if (response.IsSuccessStatusCode == false)
@@ -72,12 +77,12 @@ namespace DependencyInjectionWorkshop.Models
                 return true;
             }
 
-            // 通知
+            // Slack通知User
             var slackClient = new SlackClient("my Api token");
             slackClient.PostMessage(r => { }, "mychannel", "message");
 
             // 計算失敗次數
-            using (var httpClient = new HttpClient() {BaseAddress = new Uri("http://joey.com/")})
+            using (var httpClient = new HttpClient() {BaseAddress = new Uri(apiUrl)})
             {
                 var response = httpClient.PostAsJsonAsync("api/FailCounter/Add", account).Result;
                 if (response.IsSuccessStatusCode == false)
