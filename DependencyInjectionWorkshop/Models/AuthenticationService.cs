@@ -16,10 +16,8 @@ namespace DependencyInjectionWorkshop.Models
             var apiUrl = "http://joey.com/";
             var httpClient = new HttpClient() {BaseAddress = new Uri(apiUrl)};
 
-            var isAccountLockedResponse = httpClient.PostAsJsonAsync("api/FailCounter/Get", accountId).Result;
-            isAccountLockedResponse.EnsureSuccessStatusCode();
-            // 檢查帳號是否被lock了
-            if (isAccountLockedResponse.Content.ReadAsAsync<bool>().Result)
+            // 檢查是否Lock
+            if (AccountIsLock(accountId, httpClient))
             {
                 throw new FailedTooManyTimesException();
             }
@@ -33,31 +31,67 @@ namespace DependencyInjectionWorkshop.Models
             // 取得帳號的password
             var dbHashPassword = GetCurrentPasswordFromDB(accountId);
 
+            // 比對正確性
             if (inputOtp == currentOtp && hashPassword.ToString() == dbHashPassword)
             {
                 // 成功之後重計
-                var resetResponse = httpClient.PostAsJsonAsync("api/FailCounter/Reset", accountId).Result;
-                resetResponse.EnsureSuccessStatusCode();
+                ResetFailCount(accountId, httpClient);
                 return true;
             }
 
             // Slack通知User
-            var slackClient = new SlackClient("my Api token");
-            slackClient.PostMessage(r => { }, "mychannel", "message");
+            PushMessage();
 
             // 計算失敗次數
-            var addResponse = httpClient.PostAsJsonAsync("api/FailCounter/Add", accountId).Result;
-            addResponse.EnsureSuccessStatusCode();
+            AddFailCount(accountId, httpClient);
 
             // 在取得現在的失敗次數之後紀錄log
+            LogFailCount(accountId, httpClient);
+
+            return false;
+        }
+
+        private static bool AccountIsLock(string accountId, HttpClient httpClient)
+        {
+            var isAccountLockedResponse = httpClient.PostAsJsonAsync("api/FailCounter/IsLock", accountId).Result;
+            isAccountLockedResponse.EnsureSuccessStatusCode();
+            // 檢查帳號是否被lock了
+            var isLock = isAccountLockedResponse.Content.ReadAsAsync<bool>().Result;
+            return isLock;
+        }
+
+        private static void PushMessage()
+        {
+            var slackClient = new SlackClient("my Api token");
+            slackClient.PostMessage(r => { }, "mychannel", "message");
+        }
+
+        private static void LogFailCount(string accountId, HttpClient httpClient)
+        {
+            var failedCount = GetFailCount(accountId, httpClient);
+            var logger = NLog.LogManager.GetCurrentClassLogger();
+            logger.Info($"accountId:{accountId} failed times:{failedCount}");
+        }
+
+        private static int GetFailCount(string accountId, HttpClient httpClient)
+        {
             var failedCountResponse = httpClient.PostAsJsonAsync("api/FailCounter/Get", accountId).Result;
             failedCountResponse.EnsureSuccessStatusCode();
 
             var failedCount = failedCountResponse.Content.ReadAsAsync<int>().Result;
-            var logger = NLog.LogManager.GetCurrentClassLogger();
-            logger.Info($"accountId:{accountId} failed times:{failedCount}");
+            return failedCount;
+        }
 
-            return false;
+        private static void AddFailCount(string accountId, HttpClient httpClient)
+        {
+            var addResponse = httpClient.PostAsJsonAsync("api/FailCounter/Add", accountId).Result;
+            addResponse.EnsureSuccessStatusCode();
+        }
+
+        private static void ResetFailCount(string accountId, HttpClient httpClient)
+        {
+            var resetResponse = httpClient.PostAsJsonAsync("api/FailCounter/Reset", accountId).Result;
+            resetResponse.EnsureSuccessStatusCode();
         }
 
         private static string GetCurrentOtp(string accountId, HttpClient httpClient)
