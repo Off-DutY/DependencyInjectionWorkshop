@@ -11,31 +11,23 @@ namespace DependencyInjectionWorkshop.Models
 {
     public class AuthenticationService
     {
-        public bool Verify(string account, string password, string inputOtp)
+        public bool Verify(string accountId, string password, string inputOtp)
         {
             var apiUrl = "http://joey.com/";
-            using (var httpClient = new HttpClient() {BaseAddress = new Uri(apiUrl)})
+            var httpClient = new HttpClient() {BaseAddress = new Uri(apiUrl)};
+            var isAccountLocked = httpClient.PostAsJsonAsync("api/FailCounter/Get", accountId).Result;
+            isAccountLocked.EnsureSuccessStatusCode();
+            // 帳號被lock了
+            if (isAccountLocked.Content.ReadAsAsync<bool>().Result)
             {
-                var isAccountLocked = httpClient.PostAsJsonAsync("api/FailCounter/Get", account).Result;
-                if (isAccountLocked.IsSuccessStatusCode == false)
-                {
-                    throw new Exception($"web api error, accountId:{account}");
-                }
-
-                isAccountLocked.EnsureSuccessStatusCode();
-                // 帳號被lock了
-                if (isAccountLocked.Content.ReadAsAsync<bool>().Result)
-                {
-//                    throw new FailedTooManyTimesException();
-                    throw new Exception("FailedTooManyTimesException");
-                }
+                throw new FailedTooManyTimesException();
             }
 
             // 取得帳號的password
             var hashPassword = "";
             using (var connection = new SqlConnection("my connection string"))
             {
-                hashPassword = connection.Query<string>("spGetUserPassword", new {Id = account},
+                hashPassword = connection.Query<string>("spGetUserPassword", new {Id = accountId},
                     commandType: CommandType.StoredProcedure).SingleOrDefault();
             }
 
@@ -50,30 +42,21 @@ namespace DependencyInjectionWorkshop.Models
 
             // 取得帳號當下的Otp
             var currentOtp = "";
-            using (var httpClient = new HttpClient() {BaseAddress = new Uri(apiUrl)})
+            var otpResponse = httpClient.PostAsJsonAsync("api/otps", accountId).Result;
+            if (otpResponse.IsSuccessStatusCode)
             {
-                var response = httpClient.PostAsJsonAsync("api/otps", account).Result;
-                if (response.IsSuccessStatusCode)
-                {
-                    currentOtp = response.Content.ReadAsAsync<string>().Result;
-                }
-                else
-                {
-                    throw new Exception($"web api error, accountId:{account}");
-                }
+                currentOtp = otpResponse.Content.ReadAsAsync<string>().Result;
+            }
+            else
+            {
+                throw new Exception($"web api error, accountId:{accountId}");
             }
 
             if (inputOtp == currentOtp && hash.ToString() == hashPassword)
             {
                 // 成功之後重計
-                using (var httpClient = new HttpClient() {BaseAddress = new Uri(apiUrl)})
-                {
-                    var response = httpClient.PostAsJsonAsync("api/FailCounter/Reset", account).Result;
-                    if (response.IsSuccessStatusCode == false)
-                    {
-                        throw new Exception($"web api error, accountId:{account}");
-                    }
-                }
+                var resetResponse = httpClient.PostAsJsonAsync("api/FailCounter/Reset", accountId).Result;
+                resetResponse.EnsureSuccessStatusCode();
                 return true;
             }
 
@@ -82,16 +65,22 @@ namespace DependencyInjectionWorkshop.Models
             slackClient.PostMessage(r => { }, "mychannel", "message");
 
             // 計算失敗次數
-            using (var httpClient = new HttpClient() {BaseAddress = new Uri(apiUrl)})
-            {
-                var response = httpClient.PostAsJsonAsync("api/FailCounter/Add", account).Result;
-                if (response.IsSuccessStatusCode == false)
-                {
-                    throw new Exception($"web api error, accountId:{account}");
-                }
-            }
+            var addResponse = httpClient.PostAsJsonAsync("api/FailCounter/Add", accountId).Result;
+            addResponse.EnsureSuccessStatusCode();
+
+            // 在取得現在的失敗次數之後紀錄log
+            var failedCountResponse = httpClient.PostAsJsonAsync("api/FailCounter/Get", accountId).Result;
+            failedCountResponse.EnsureSuccessStatusCode();
+
+            var failedCount = failedCountResponse.Content.ReadAsAsync<int>().Result;
+            var logger = NLog.LogManager.GetCurrentClassLogger();
+            logger.Info($"accountId:{accountId} failed times:{failedCount}");
 
             return false;
         }
+    }
+
+    public class FailedTooManyTimesException : Exception
+    {
     }
 }
