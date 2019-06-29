@@ -1,11 +1,4 @@
 ﻿using System;
-using System.Data;
-using System.Data.SqlClient;
-using System.Linq;
-using System.Net.Http;
-using System.Text;
-using Dapper;
-using SlackAPI;
 
 namespace DependencyInjectionWorkshop.Models
 {
@@ -49,117 +42,11 @@ namespace DependencyInjectionWorkshop.Models
             // 計算失敗次數
             _failCounter.Add(accountId);
 
-            // 在取得現在的失敗次數之後紀錄log
+            // 取得現在的失敗次數之後紀錄log
             var failCount = _failCounter.Get(accountId);
             _nLogAdapter.Info($"account={accountId}, errorCount = {failCount}");
 
             return false;
-        }
-    }
-
-    public class SlackAdapter
-    {
-        public void PushMessage(string accountId)
-        {
-            var slackClient = new SlackClient("my Api token");
-            slackClient.PostMessage(r => { }, "mychannel", $"message {accountId}");
-        }
-    }
-
-    public class NLogAdapter
-    {
-        public void Info(string message)
-        {
-            var logger = NLog.LogManager.GetCurrentClassLogger();
-            logger.Info(message);
-        }
-    }
-
-    public class FailCounter
-    {
-        public void Reset(string accountId)
-        {
-            var resetResponse = new HttpClient()
-            {
-                BaseAddress = new Uri("http://joey.com/")
-            }.PostAsJsonAsync("api/FailCounter/Reset", accountId).Result;
-            resetResponse.EnsureSuccessStatusCode();
-        }
-
-        public void Add(string accountId)
-        {
-            var addResponse = new HttpClient()
-            {
-                BaseAddress = new Uri("http://joey.com/")
-            }.PostAsJsonAsync("api/FailCounter/Add", accountId).Result;
-            addResponse.EnsureSuccessStatusCode();
-        }
-
-        public int Get(string accountId)
-        {
-            var failedCountResponse = new HttpClient()
-            {
-                BaseAddress = new Uri("http://joey.com/")
-            }.PostAsJsonAsync("api/FailCounter/Get", accountId).Result;
-            failedCountResponse.EnsureSuccessStatusCode();
-
-            var failedCount = failedCountResponse.Content.ReadAsAsync<int>().Result;
-            return failedCount;
-        }
-
-        public bool IsLocked(string accountId)
-        {
-            var isAccountLockedResponse = new HttpClient()
-            {
-                BaseAddress = new Uri("http://joey.com/")
-            }.PostAsJsonAsync("api/FailCounter/IsLock", accountId).Result;
-            isAccountLockedResponse.EnsureSuccessStatusCode();
-            // 檢查帳號是否被lock了
-            var isLock = isAccountLockedResponse.Content.ReadAsAsync<bool>().Result;
-            return isLock;
-        }
-    }
-
-    public class OtpService
-    {
-        public string Get(string accountId)
-        {
-            var otpResponse = new HttpClient()
-            {
-                BaseAddress = new Uri("http://joey.com/")
-            }.PostAsJsonAsync("api/otps", accountId).Result;
-            if (otpResponse.IsSuccessStatusCode)
-            {
-                return otpResponse.Content.ReadAsAsync<string>().Result;
-            }
-            throw new Exception($"web api error, accountId:{accountId}");
-        }
-    }
-
-    public class Sha256Adapter
-    {
-        public StringBuilder Hash(string plainText)
-        {
-            var crypt = new System.Security.Cryptography.SHA256Managed();
-            var hash = new StringBuilder();
-            var crypto = crypt.ComputeHash(Encoding.UTF8.GetBytes(plainText));
-            foreach (var theByte in crypto)
-            {
-                hash.Append(theByte.ToString("x2"));
-            }
-            return hash;
-        }
-    }
-
-    public class ProfileDao
-    {
-        public string GetPassword(string accountId)
-        {
-            using (var connection = new SqlConnection("my connection string"))
-            {
-                return SqlMapper.Query<string>(connection, "spGetUserPassword", new {Id = accountId},
-                    commandType: CommandType.StoredProcedure).SingleOrDefault();
-            }
         }
     }
 
