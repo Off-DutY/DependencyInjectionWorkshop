@@ -29,7 +29,7 @@ namespace DependencyInjectionWorkshop.Models
             var currentOtp = GetCurrentOtp(accountId, httpClient);
 
             // 取得帳號的password
-            var dbHashPassword = GetCurrentPasswordFromDB(accountId);
+            var dbHashPassword = new ProfileDao().GetCurrentPasswordFromDb(accountId);
 
             // 比對正確性
             if (inputOtp == currentOtp && hashPassword.ToString() == dbHashPassword)
@@ -120,10 +120,13 @@ namespace DependencyInjectionWorkshop.Models
             }
             return hash;
         }
+    }
 
-        private static string GetCurrentPasswordFromDB(string accountId)
+    public class ProfileDao
+    {
+        public string GetCurrentPasswordFromDb(string accountId)
         {
-            var hashPassword = "";
+            string hashPassword;
             using (var connection = new SqlConnection("my connection string"))
             {
                 hashPassword = connection.Query<string>("spGetUserPassword", new {Id = accountId},
