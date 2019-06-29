@@ -23,13 +23,13 @@ namespace DependencyInjectionWorkshop.Models
             }
 
             // 取得密碼hash
-            var hashPassword = GetHashPassword(password);
+            var hashPassword = new Sha256Adapter().Hash(password);
 
             // 取得帳號當下的Otp
             var currentOtp = GetCurrentOtp(accountId, httpClient);
 
             // 取得帳號的password
-            var dbHashPassword = new ProfileDao().GetCurrentPasswordFromDb(accountId);
+            var dbHashPassword = new ProfileDao().GetPassword(accountId);
 
             // 比對正確性
             if (inputOtp == currentOtp && hashPassword.ToString() == dbHashPassword)
@@ -108,12 +108,15 @@ namespace DependencyInjectionWorkshop.Models
             }
             return currentOtp;
         }
+    }
 
-        private static StringBuilder GetHashPassword(string password)
+    public class Sha256Adapter
+    {
+        public StringBuilder Hash(string plainText)
         {
             var crypt = new System.Security.Cryptography.SHA256Managed();
             var hash = new StringBuilder();
-            var crypto = crypt.ComputeHash(Encoding.UTF8.GetBytes(password));
+            var crypto = crypt.ComputeHash(Encoding.UTF8.GetBytes(plainText));
             foreach (var theByte in crypto)
             {
                 hash.Append(theByte.ToString("x2"));
@@ -124,15 +127,13 @@ namespace DependencyInjectionWorkshop.Models
 
     public class ProfileDao
     {
-        public string GetCurrentPasswordFromDb(string accountId)
+        public string GetPassword(string accountId)
         {
-            string hashPassword;
             using (var connection = new SqlConnection("my connection string"))
             {
-                hashPassword = connection.Query<string>("spGetUserPassword", new {Id = accountId},
+                return SqlMapper.Query<string>(connection, "spGetUserPassword", new {Id = accountId},
                     commandType: CommandType.StoredProcedure).SingleOrDefault();
             }
-            return hashPassword;
         }
     }
 
