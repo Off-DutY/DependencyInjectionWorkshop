@@ -4,12 +4,33 @@ namespace DependencyInjectionWorkshop.Models
 {
     public class AuthenticationService
     {
-        private readonly ProfileDao _profileDao = new ProfileDao();
-        private readonly Sha256Adapter _sha256Adapter = new Sha256Adapter();
-        private readonly OtpService _otpService = new OtpService();
-        private readonly FailCounter _failCounter = new FailCounter();
-        private readonly NLogAdapter _nLogAdapter = new NLogAdapter();
-        private readonly SlackAdapter _slackAdapter = new SlackAdapter();
+        private readonly SlackAdapter _slackAdapter;
+        private readonly NLogAdapter _nLogAdapter;
+        private readonly FailCounter _failCounter;
+        private readonly OtpService _otpService;
+        private readonly Sha256Adapter _sha256Adapter;
+        private readonly ProfileDao _profileDao;
+
+        public AuthenticationService(SlackAdapter slackAdapter, NLogAdapter nLogAdapter, FailCounter failCounter, OtpService otpService, Sha256Adapter sha256Adapter, ProfileDao profileDao)
+        {
+            _slackAdapter = slackAdapter;
+            _nLogAdapter = nLogAdapter;
+            _failCounter = failCounter;
+            _otpService = otpService;
+            _sha256Adapter = sha256Adapter;
+            _profileDao = profileDao;
+        }
+
+        public AuthenticationService()
+        {
+            _slackAdapter = new SlackAdapter();
+            _nLogAdapter = new NLogAdapter();
+            _failCounter = new FailCounter();
+            _otpService = new OtpService();
+            _sha256Adapter = new Sha256Adapter();
+            _profileDao = new ProfileDao();
+        }
+
 
         public bool Verify(string accountId, string password, string inputOtp)
         {
