@@ -25,35 +25,15 @@ namespace DependencyInjectionWorkshop.Models
             }
 
             // 取得密碼hash
-            var crypt = new System.Security.Cryptography.SHA256Managed();
-            var hash = new StringBuilder();
-            var crypto = crypt.ComputeHash(Encoding.UTF8.GetBytes(password));
-            foreach (var theByte in crypto)
-            {
-                hash.Append(theByte.ToString("x2"));
-            }
+            var hashPassword = GetHashPassword(password);
 
             // 取得帳號當下的Otp
-            var currentOtp = "";
-            var otpResponse = httpClient.PostAsJsonAsync("api/otps", accountId).Result;
-            if (otpResponse.IsSuccessStatusCode)
-            {
-                currentOtp = otpResponse.Content.ReadAsAsync<string>().Result;
-            }
-            else
-            {
-                throw new Exception($"web api error, accountId:{accountId}");
-            }
+            var currentOtp = GetCurrentOtp(accountId, httpClient);
 
             // 取得帳號的password
-            var hashPassword = "";
-            using (var connection = new SqlConnection("my connection string"))
-            {
-                hashPassword = connection.Query<string>("spGetUserPassword", new {Id = accountId},
-                    commandType: CommandType.StoredProcedure).SingleOrDefault();
-            }
+            var dbHashPassword = GetCurrentPasswordFromDB(accountId);
 
-            if (inputOtp == currentOtp && hash.ToString() == hashPassword)
+            if (inputOtp == currentOtp && hashPassword.ToString() == dbHashPassword)
             {
                 // 成功之後重計
                 var resetResponse = httpClient.PostAsJsonAsync("api/FailCounter/Reset", accountId).Result;
@@ -78,6 +58,44 @@ namespace DependencyInjectionWorkshop.Models
             logger.Info($"accountId:{accountId} failed times:{failedCount}");
 
             return false;
+        }
+
+        private static string GetCurrentOtp(string accountId, HttpClient httpClient)
+        {
+            var currentOtp = "";
+            var otpResponse = httpClient.PostAsJsonAsync("api/otps", accountId).Result;
+            if (otpResponse.IsSuccessStatusCode)
+            {
+                currentOtp = otpResponse.Content.ReadAsAsync<string>().Result;
+            }
+            else
+            {
+                throw new Exception($"web api error, accountId:{accountId}");
+            }
+            return currentOtp;
+        }
+
+        private static StringBuilder GetHashPassword(string password)
+        {
+            var crypt = new System.Security.Cryptography.SHA256Managed();
+            var hash = new StringBuilder();
+            var crypto = crypt.ComputeHash(Encoding.UTF8.GetBytes(password));
+            foreach (var theByte in crypto)
+            {
+                hash.Append(theByte.ToString("x2"));
+            }
+            return hash;
+        }
+
+        private static string GetCurrentPasswordFromDB(string accountId)
+        {
+            var hashPassword = "";
+            using (var connection = new SqlConnection("my connection string"))
+            {
+                hashPassword = connection.Query<string>("spGetUserPassword", new {Id = accountId},
+                    commandType: CommandType.StoredProcedure).SingleOrDefault();
+            }
+            return hashPassword;
         }
     }
 
