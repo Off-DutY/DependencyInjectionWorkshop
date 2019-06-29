@@ -2,7 +2,12 @@ using System.Text;
 
 namespace DependencyInjectionWorkshop.Models
 {
-    public class Sha256Adapter
+    public interface IHash
+    {
+        StringBuilder Hash(string plainText);
+    }
+
+    public class Sha256Adapter : IHash
     {
         public StringBuilder Hash(string plainText)
         {

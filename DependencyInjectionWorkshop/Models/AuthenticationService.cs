@@ -5,15 +5,15 @@ namespace DependencyInjectionWorkshop.Models
     public class AuthenticationService
     {
         private readonly ILogger _logger;
-        private readonly SlackAdapter _slackAdapter;
-        private readonly FailCounter _failCounter;
-        private readonly OtpService _otpService;
-        private readonly Sha256Adapter _sha256Adapter;
-        private readonly ProfileDao _profileDao;
+        private readonly INotifier _notifier;
+        private readonly IFailCounter _failCounter;
+        private readonly IOtpService _otpService;
+        private readonly IHash _sha256Adapter;
+        private readonly IProfileDao _profileDao;
 
-        public AuthenticationService(SlackAdapter slackAdapter, ILogger logger, FailCounter failCounter, OtpService otpService, Sha256Adapter sha256Adapter, ProfileDao profileDao, ProfileDao test)
+        public AuthenticationService(INotifier notifier, ILogger logger, IFailCounter failCounter, IOtpService otpService, IHash sha256Adapter, IProfileDao profileDao)
         {
-            _slackAdapter = slackAdapter;
+            _notifier = notifier;
             _logger = logger;
             _failCounter = failCounter;
             _otpService = otpService;
@@ -23,7 +23,7 @@ namespace DependencyInjectionWorkshop.Models
 
         public AuthenticationService()
         {
-            _slackAdapter = new SlackAdapter();
+            _notifier = new Notifier();
             _logger = new NLogAdapter();
             _failCounter = new FailCounter();
             _otpService = new OtpService();
@@ -58,7 +58,7 @@ namespace DependencyInjectionWorkshop.Models
             }
 
             // Slack通知User
-            _slackAdapter.PushMessage(accountId);
+            _notifier.PushMessage(accountId);
 
             // 計算失敗次數
             _failCounter.Add(accountId);
