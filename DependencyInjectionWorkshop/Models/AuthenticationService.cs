@@ -2,7 +2,12 @@
 
 namespace DependencyInjectionWorkshop.Models
 {
-    public class AuthenticationService
+    public interface IAuthentication
+    {
+        bool Verify(string accountId, string password, string inputOtp);
+    }
+
+    public class AuthenticationService : IAuthentication
     {
         private readonly ILogger _logger;
         private readonly INotifier _notifier;
@@ -56,10 +61,6 @@ namespace DependencyInjectionWorkshop.Models
                 _failCounter.Reset(accountId);
                 return true;
             }
-
-            // 失敗
-            // Slack通知User
-            _notifier.PushMessage(accountId);
 
             // 計算失敗次數
             _failCounter.Add(accountId);

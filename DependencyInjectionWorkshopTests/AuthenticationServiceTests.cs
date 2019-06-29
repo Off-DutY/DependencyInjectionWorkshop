@@ -13,14 +13,14 @@ namespace DependencyInjectionWorkshopTests
         private const string DefaultOtp = "9527";
         private const string DefaultPassword = "9487";
         private const string DefaultHashPassword = "3345678";
-        private AuthenticationService _authenticationService;
+        private const int DefaultFailCount = 1450;
+        private IAuthentication _authentication;
         private ILogger _logger;
         private INotifier _notifier;
         private IProfile _profile;
         private IFailCounter _failCounter;
         private IOtpService _otpService;
         private IHash _hash;
-        private const int DefaultFailCount = 1450;
 
 
         [SetUp]
@@ -33,7 +33,8 @@ namespace DependencyInjectionWorkshopTests
             _otpService = Substitute.For<IOtpService>();
             _hash = Substitute.For<IHash>();
 
-            _authenticationService = new AuthenticationService(_notifier, _logger, _failCounter, _otpService, _hash, _profile);
+            var authenticationService = new AuthenticationService(_notifier, _logger, _failCounter, _otpService, _hash, _profile);
+            _authentication = new NotifyDecorator(authenticationService, _notifier);
         }
 
         [Test]
@@ -79,7 +80,6 @@ namespace DependencyInjectionWorkshopTests
         {
             PresetFailCount(DefaultAccountId, DefaultFailCount);
             WhenInvalid();
-
             ShouldLog(DefaultAccountId, DefaultFailCount.ToString());
         }
 
@@ -89,6 +89,14 @@ namespace DependencyInjectionWorkshopTests
             _failCounter.IsLocked(DefaultAccountId).ReturnsForAnyArgs(true);
             void Action() => WhenValid();
             ShouldThrow<FailedTooManyTimesException>(Action);
+        }
+
+
+        [Test]
+        public void should_Reset_when_valid()
+        {
+            WhenValid();
+            ShouldReset(DefaultAccountId);
         }
 
         private static void ShouldThrow<TException>(TestDelegate action) where TException : Exception
@@ -111,13 +119,6 @@ namespace DependencyInjectionWorkshopTests
         private void ShouldAddFailCount(string accountId)
         {
             _failCounter.Received().Add(accountId);
-        }
-
-        [Test]
-        public void should_Reset_when_valid()
-        {
-            WhenValid();
-            ShouldReset(DefaultAccountId);
         }
 
         private void ShouldReset(string accountId)
@@ -162,7 +163,7 @@ namespace DependencyInjectionWorkshopTests
 
         private bool WhenVerify(string accountId, string password, string otp)
         {
-            var isValid = _authenticationService.Verify(accountId, password, otp);
+            var isValid = _authentication.Verify(accountId, password, otp);
             return isValid;
         }
 
