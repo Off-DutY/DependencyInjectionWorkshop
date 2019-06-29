@@ -18,11 +18,11 @@ namespace DependencyInjectionWorkshop.Models
             CheckLock(accountId);
             var isValid = _authenticationService.Verify(accountId, password, inputOtp);
             if (isValid)
-                ResetFailCounter(accountId);
+                Reset(accountId);
             else
             {
-                AddFailCounter(accountId);
-                LogFailCounter(accountId);
+                Add(accountId);
+                Log(accountId);
             }
             return isValid;
         }
@@ -35,18 +35,18 @@ namespace DependencyInjectionWorkshop.Models
             }
         }
 
-        private void ResetFailCounter(string accountId)
+        private void Reset(string accountId)
         {
             _failCounter.Reset(accountId);
         }
 
 
-        private void AddFailCounter(string accountId)
+        private void Add(string accountId)
         {
             _failCounter.Add(accountId);
         }
 
-        private void LogFailCounter(string accountId)
+        private void Log(string accountId)
         {
             var failCount = _failCounter.Get(accountId);
             _logger.Info($"account={accountId}, errorCount = {failCount}");
