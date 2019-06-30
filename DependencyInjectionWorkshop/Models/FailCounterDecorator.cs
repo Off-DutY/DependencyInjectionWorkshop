@@ -3,7 +3,7 @@ namespace DependencyInjectionWorkshop.Models
     public class FailCounterDecorator : AuthenticationBase
     {
         private readonly IFailCounter _failCounter;
-        private ILogger _logger;
+        private readonly ILogger _logger;
 
         public FailCounterDecorator(IAuthentication authentication, IFailCounter failCounter, ILogger logger) : base(authentication)
         {
@@ -16,11 +16,12 @@ namespace DependencyInjectionWorkshop.Models
             CheckLock(accountId);
             var isValid = base.Verify(accountId, password, inputOtp);
             if (isValid)
-                Reset(accountId);
+                _failCounter.Reset(accountId);
             else
             {
-                Add(accountId);
-                Log(accountId);
+                _failCounter.Add(accountId);
+                var failCount = _failCounter.Get(accountId);
+                _logger.Info($"account={accountId}, errorCount = {failCount}");
             }
             return isValid;
         }
@@ -31,17 +32,6 @@ namespace DependencyInjectionWorkshop.Models
             {
                 throw new FailedTooManyTimesException();
             }
-        }
-
-        private void Reset(string accountId)
-        {
-            _failCounter.Reset(accountId);
-        }
-
-
-        private void Add(string accountId)
-        {
-            _failCounter.Add(accountId);
         }
 
         private void Log(string accountId)

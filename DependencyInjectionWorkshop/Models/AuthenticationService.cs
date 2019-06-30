@@ -2,11 +2,6 @@
 
 namespace DependencyInjectionWorkshop.Models
 {
-    public interface IAuthentication
-    {
-        bool Verify(string accountId, string password, string inputOtp);
-    }
-
     public class AuthenticationService : IAuthentication
     {
         private readonly IOtpService _otpService;

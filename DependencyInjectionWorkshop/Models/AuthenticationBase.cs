@@ -1,6 +1,11 @@
 namespace DependencyInjectionWorkshop.Models
 {
-    public class AuthenticationBase : IAuthentication
+    public interface IAuthentication
+    {
+        bool Verify(string accountId, string password, string inputOtp);
+    }
+
+    public abstract class AuthenticationBase : IAuthentication
     {
         private readonly IAuthentication _authentication;
 

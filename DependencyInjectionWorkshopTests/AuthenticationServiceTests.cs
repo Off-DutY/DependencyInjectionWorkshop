@@ -32,9 +32,9 @@ namespace DependencyInjectionWorkshopTests
             _otpService = Substitute.For<IOtpService>();
             _hash = Substitute.For<IHash>();
 
-            _authentication = new AuthenticationService(_otpService, _hash, _profile);
-            _authentication = new FailCounterDecorator(_authentication, _failCounter, _logger);
-            _authentication = new NotifyDecorator(_authentication, _notifier);
+            var authenticationService = new AuthenticationService(_otpService, _hash, _profile);
+            var failCounterDecorator = new FailCounterDecorator(authenticationService, _failCounter, _logger);
+            _authentication = new NotifyDecorator(failCounterDecorator, _notifier);
         }
 
         [Test]
