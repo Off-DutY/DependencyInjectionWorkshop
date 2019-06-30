@@ -1,7 +1,6 @@
 ﻿using System;
 using DependencyInjectionWorkshop.Models;
 using NSubstitute;
-using NSubstitute.Core;
 using NUnit.Framework;
 
 namespace DependencyInjectionWorkshopTests
